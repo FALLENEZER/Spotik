@@ -1,0 +1,33 @@
+# Development Environment Configuration
+# Overrides default settings for development environment
+
+app:
+  debug: true
+  environment: "development"
+
+server:
+  threads: 2
+  workers: 1
+
+database:
+  pool:
+    max: 5
+
+security:
+  rate_limiting:
+    max_requests_per_hour: 10000  # More lenient for development
+
+monitoring:
+  performance:
+    enabled: true
+    slow_query_threshold: 500  # Lower threshold for development debugging
+    slow_request_threshold: 1000
+  logging:
+    level: "debug"
+    format: "text"  # More readable for development
+
+development:
+  hot_reload: true
+  debug_sql: true
+  cors_enabled: true
+  cors_origins: "http://localhost:8080,http://localhost:3001"

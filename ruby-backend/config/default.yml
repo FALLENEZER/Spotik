@@ -1,0 +1,80 @@
+# Default Configuration for Spotik Ruby Backend
+# This file contains the default settings for all environments
+# Override these settings using environment-specific config files or environment variables
+
+app:
+  name: "Spotik"
+  environment: "development"
+  debug: false
+  version: "1.0.0"
+  url: "http://localhost:3000"
+
+server:
+  host: "0.0.0.0"
+  port: 3000
+  threads: 4
+  workers: 2
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "spotik"
+  user: "spotik_user"
+  password: "spotik_password"
+  pool:
+    min: 2
+    max: 10
+    timeout: 5
+  connect_timeout: 10
+  read_timeout: 30
+
+storage:
+  audio_path: "./storage/audio"
+  public_path: "./storage/public"
+  temp_path: "./storage/temp"
+  max_file_size_mb: 50
+  allowed_audio_formats: "mp3,wav,m4a,flac"
+
+security:
+  jwt:
+    # JWT_SECRET environment variable is required
+    secret: null
+    ttl: 1440  # 24 hours in minutes
+    algorithm: "HS256"
+  bcrypt:
+    cost: 12
+  rate_limiting:
+    enabled: true
+    max_requests_per_hour: 1000
+    time_window: 3600  # 1 hour in seconds
+
+websocket:
+  ping_interval: 30
+  activity_timeout: 120
+  max_connections: 1000
+
+monitoring:
+  health_check:
+    enabled: true
+    endpoint: "/health"
+  performance:
+    enabled: true
+    slow_query_threshold: 1000  # milliseconds
+    slow_request_threshold: 2000  # milliseconds
+  logging:
+    level: "info"
+    file: "logs/spotik.log"
+    max_size_mb: 100
+    max_files: 5
+    format: "json"
+
+cache:
+  enabled: true
+  ttl: 300  # 5 minutes
+  max_size: 1000
+
+development:
+  hot_reload: false
+  debug_sql: false
+  cors_enabled: true
+  cors_origins: "*"

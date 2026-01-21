@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="log"></div>
+
+    <script>
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        
+        function addLog(message) {
+            const div = document.createElement('div');
+            div.textContent = new Date().toISOString() + ': ' + message;
+            log.appendChild(div);
+            console.log(message);
+        }
+
+        // Test WebSocket connection directly
+        try {
+            const ws = new WebSocket('ws://localhost:8080/app/spotik-key?protocol=7&client=js&version=8.4.0-rc2&flash=false');
+            
+            ws.onopen = function(event) {
+                addLog('WebSocket connection opened');
+                status.textContent = 'Connected';
+                status.style.color = 'green';
+            };
+            
+            ws.onmessage = function(event) {
+                addLog('Message received: ' + event.data);
+            };
+            
+            ws.onerror = function(error) {
+                addLog('WebSocket error: ' + error);
+                status.textContent = 'Error';
+                status.style.color = 'red';
+            };
+            
+            ws.onclose = function(event) {
+                addLog('WebSocket connection closed: ' + event.code + ' - ' + event.reason);
+                status.textContent = 'Disconnected';
+                status.style.color = 'red';
+            };
+            
+        } catch (error) {
+            addLog('Failed to create WebSocket: ' + error);
+            status.textContent = 'Failed';
+            status.style.color = 'red';
+        }
+    </script>
+</body>
+</html>

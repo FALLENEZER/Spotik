@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Test script for Spotik Ruby Backend
+
+set -e
+
+echo "Testing Spotik Ruby Backend..."
+
+# Start server in background
+echo "Starting server..."
+ruby server.rb &
+SERVER_PID=$!
+
+# Wait for server to start
+sleep 2
+
+# Test health endpoint
+echo "Testing health endpoint..."
+curl -s http://localhost:3000/health | jq '.'
+
+# Test API info endpoint
+echo "Testing API info endpoint..."
+curl -s http://localhost:3000/api | jq '.'
+
+# Test CORS headers
+echo "Testing CORS headers..."
+curl -s -I http://localhost:3000/api | grep -i "access-control"
+
+# Test 404 handling
+echo "Testing 404 handling..."
+curl -s http://localhost:3000/nonexistent | jq '.'
+
+# Stop server
+echo "Stopping server..."
+kill $SERVER_PID
+
+echo "All tests completed!"

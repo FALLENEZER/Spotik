@@ -1,0 +1,46 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+vendor
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel specific
+storage/app/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+bootstrap/cache/*
+.env
+.env.*
+
+# Testing
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# Documentation
+README.md
+docs/
+
+# Build artifacts
+*.log
+*.tmp
+*.temp
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore

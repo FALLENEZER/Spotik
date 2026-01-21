@@ -1,0 +1,48 @@
+# Ruby Backend for Spotik - Migration from Laravel
+source 'https://rubygems.org'
+
+ruby '>= 3.2.0'
+
+# Core server dependencies
+gem 'iodine', '~> 0.7.57'  # High-performance HTTP/WebSocket server
+gem 'sinatra', '~> 3.1'    # Lightweight web framework for REST API
+gem 'rack', '~> 2.2'       # Standard web server interface
+
+# Database
+gem 'sequel', '~> 5.73'    # Lightweight ORM for PostgreSQL
+gem 'pg', '~> 1.5'         # PostgreSQL adapter
+
+# Authentication and Security
+gem 'jwt', '~> 2.7'        # JSON Web Token handling
+gem 'bcrypt', '~> 3.1'     # Password hashing (Laravel compatibility)
+
+# JSON handling
+gem 'multi_json', '~> 1.15'  # JSON parsing and generation
+gem 'oj', '~> 3.16'          # Fast JSON parser
+
+# File handling
+gem 'mime-types', '~> 3.5'   # MIME type detection for audio files
+
+# Configuration
+gem 'dotenv', '~> 2.8'       # Environment variable loading
+
+# Logging
+gem 'logger', '~> 1.5'       # Enhanced logging capabilities
+
+# Development and testing
+group :development, :test do
+  gem 'rspec', '~> 3.12'     # Testing framework
+  gem 'rantly', '~> 2.0'     # Property-based testing
+  gem 'pry', '~> 0.14'       # Debugging
+  gem 'rubocop', '~> 1.57'   # Code style and linting
+end
+
+group :development do
+  gem 'rerun', '~> 0.14'     # Auto-restart during development
+end
+
+group :test do
+  gem 'rack-test', '~> 2.1'  # Testing HTTP endpoints
+  gem 'database_cleaner-sequel', '~> 2.0'  # Database cleanup for tests
+  gem 'sqlite3', '~> 1.6'    # SQLite for in-memory testing
+end

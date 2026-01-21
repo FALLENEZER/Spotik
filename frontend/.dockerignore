@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.log
+*.tmp
+*.temp
+
+# Environment files
+.env
+.env.*
+
+# Testing
+coverage/
+.nyc_output
+
+# Documentation
+README.md
+docs/
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Development files
+src/test/
+*.test.js
+*.spec.js

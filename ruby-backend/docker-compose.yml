@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # Ruby Backend Server
+  ruby-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: spotik_ruby_backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - ruby_storage:/app/storage
+      - ruby_logs:/app/logs
+      - ruby_tmp:/app/tmp
+      - /app/vendor/bundle  # Exclude vendor/bundle from volume mount
+    environment:
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - APP_URL=http://localhost:3000
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3000
+      - SERVER_THREADS=4
+      - SERVER_WORKERS=2
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=spotik
+      - DB_USER=spotik_user
+      - DB_PASSWORD=spotik_password
+      - DB_POOL_MIN=2
+      - DB_POOL_MAX=10
+      - DB_POOL_TIMEOUT=5
+      - JWT_SECRET=your_jwt_secret_here_change_in_production
+      - JWT_TTL=1440
+      - AUDIO_STORAGE_PATH=/app/storage/tracks
+      - PUBLIC_STORAGE_PATH=/app/storage/public
+      - WS_PING_INTERVAL=30
+      - WS_ACTIVITY_TIMEOUT=120
+      - LOG_LEVEL=debug
+      - LOG_FILE=logs/spotik.log
+      - ENABLE_PERFORMANCE_MONITORING=true
+      - SLOW_QUERY_THRESHOLD=1000
+      - SLOW_REQUEST_THRESHOLD=2000
+      - HEALTH_CHECK_ENABLED=true
+      - HEALTH_CHECK_ENDPOINT=/health
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ruby_backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # PostgreSQL Database (shared with Laravel backend)
+  postgres:
+    image: postgres:15-alpine
+    container_name: spotik_postgres_ruby
+    environment:
+      POSTGRES_DB: spotik
+      POSTGRES_USER: spotik_user
+      POSTGRES_PASSWORD: spotik_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with main postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    networks:
+      - ruby_backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spotik_user -d spotik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # Redis for caching (optional - Ruby backend has native WebSocket)
+  redis:
+    image: redis:7-alpine
+    container_name: spotik_redis_ruby
+    ports:
+      - "6380:6379"  # Different port to avoid conflict
+    volumes:
+      - redis_data:/data
+      - ../docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ruby_backend_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ruby_storage:
+    driver: local
+  ruby_logs:
+    driver: local
+  ruby_tmp:
+    driver: local
+
+networks:
+  ruby_backend_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
