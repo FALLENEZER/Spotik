@@ -243,8 +243,7 @@ class DatabaseQueryMiddleware
     if defined?(SpotikConfig::Database) && SpotikConfig::Database.connection
       db = SpotikConfig::Database.connection
       
-      # Add query timing
-      db.extension :query_literals
+      # Add query timing (no extension needed)
       
       # Hook into query execution
       db.define_singleton_method(:log_connection_yield) do |sql, conn, args = nil|

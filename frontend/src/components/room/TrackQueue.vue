@@ -77,6 +77,24 @@
             'ring-2 ring-blue-500': isCurrentTrack(track),
           }"
         >
+          <!-- Track cover -->
+          <div
+            class="flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border border-gray-200"
+            :style="getCoverStyle(track)"
+            aria-hidden="true"
+          >
+            <img
+              v-if="track.cover_url"
+              :src="track.cover_url"
+              alt=""
+              class="w-full h-full object-cover"
+            />
+            <div v-else class="w-full h-full grid place-items-center">
+              <span class="text-xs font-semibold text-white drop-shadow">
+                {{ getInitials(track.original_name) }}
+              </span>
+            </div>
+          </div>
           <!-- Track position -->
           <div class="flex-shrink-0 w-8 text-center">
             <span
@@ -194,7 +212,7 @@ const trackStore = useTrackStore()
 const showNotification = inject('showNotification')
 
 // Props
-const props = defineProps({
+const { loading } = defineProps({
   loading: {
     type: Boolean,
     default: false,
@@ -202,7 +220,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['play-track', 'remove-track', 'play-next'])
+defineEmits(['play-track', 'remove-track', 'play-next'])
 
 // State
 const votingTrackId = ref(null)
@@ -232,6 +250,33 @@ const handleVote = async track => {
   } finally {
     votingTrackId.value = null
   }
+}
+
+const getInitials = name => {
+  if (!name) return 'A'
+  const parts = name
+    .replace(/\.[^/.]+$/, '')
+    .split(/\s+/)
+    .filter(Boolean)
+  const first = parts[0]?.[0] || 'A'
+  const second = parts.length > 1 ? parts[1]?.[0] : ''
+  return (first + second).toUpperCase()
+}
+
+const stringToHue = str => {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return Math.abs(hash) % 360
+}
+
+const getCoverStyle = track => {
+  if (track.cover_url) return {}
+  const hue = stringToHue(track.original_name || String(track.id))
+  const start = `hsl(${hue}, 70%, 55%)`
+  const end = `hsl(${(hue + 40) % 360}, 70%, 45%)`
+  return { background: `linear-gradient(135deg, ${start}, ${end})` }
 }
 
 const formatDuration = seconds => {

@@ -1,14 +1,16 @@
 # Spotik Development Makefile
 
-.PHONY: help setup start stop restart logs clean test up build
+.PHONY: help setup start stop restart logs clean test up build up-ruby down-ruby status-ruby
 
 # Default target
 help:
 	@echo "Spotik Development Commands:"
 	@echo ""
 	@echo "  setup     - Initial project setup"
-	@echo "  start     - Start all services"
+	@echo "  start     - Start all services (Laravel backend)"
+	@echo "  up-ruby   - Start Ruby backend server"
 	@echo "  stop      - Stop all services"
+	@echo "  down-ruby - Stop Ruby backend server"
 	@echo "  restart   - Restart all services"
 	@echo "  logs      - Show logs for all services"
 	@echo "  clean     - Clean up containers and volumes"
@@ -19,6 +21,13 @@ help:
 	@echo "  backend-migrate  - Run database migrations"
 	@echo "  backend-seed     - Seed database with test data"
 	@echo "  backend-test     - Run backend tests"
+	@echo ""
+	@echo "Ruby Backend Commands:"
+	@echo "  up-ruby          - Start Ruby backend server"
+	@echo "  down-ruby        - Stop Ruby backend server"
+	@echo "  status-ruby      - Check Ruby backend status"
+	@echo "  ruby-test        - Run Ruby backend tests"
+	@echo "  ruby-shell       - Access Ruby backend directory"
 	@echo ""
 	@echo "Frontend Commands:"
 	@echo "  frontend-shell   - Access frontend container shell"
@@ -129,3 +138,74 @@ prod-logs:
 
 prod-stop:
 	@docker-compose -f docker-compose.prod.yml down
+
+# Ruby Backend Commands
+up-ruby:
+	@echo "🚀 Starting Ruby backend server..."
+	@echo "Checking if Ruby backend is already running..."
+	@if pgrep -f "ruby.*server.rb" > /dev/null; then \
+		echo "✅ Ruby backend is already running on port 4000"; \
+		echo "PID: $$(pgrep -f 'ruby.*server.rb')"; \
+	else \
+		echo "📦 Installing Ruby dependencies..."; \
+		cd ruby-backend && bundle install --quiet; \
+		echo "🔧 Starting Ruby backend server..."; \
+		cd ruby-backend && nohup ruby server.rb > server_output.log 2>&1 & \
+		sleep 2; \
+		if pgrep -f "ruby.*server.rb" > /dev/null; then \
+			echo "✅ Ruby backend started successfully on port 4000"; \
+			echo "PID: $$(pgrep -f 'ruby.*server.rb')"; \
+			echo "📊 Health check: http://localhost:4000/health"; \
+			echo "📋 API info: http://localhost:4000/api"; \
+			echo "🔌 WebSocket: ws://localhost:4000/ws"; \
+		else \
+			echo "❌ Failed to start Ruby backend"; \
+			echo "Check logs: tail -f ruby-backend/server_output.log"; \
+		fi; \
+	fi
+
+down-ruby:
+	@echo "🛑 Stopping Ruby backend server..."
+	@if pgrep -f "ruby.*server.rb" > /dev/null; then \
+		pkill -f "ruby.*server.rb"; \
+		echo "✅ Ruby backend stopped"; \
+	else \
+		echo "ℹ️  Ruby backend was not running"; \
+	fi
+	@if pgrep -f "iodine" > /dev/null; then \
+		pkill -f "iodine"; \
+		echo "✅ Iodine processes stopped"; \
+	fi
+
+status-ruby:
+	@echo "📊 Ruby backend status:"
+	@if pgrep -f "ruby.*server.rb" > /dev/null; then \
+		echo "✅ Ruby backend is running on port 4000"; \
+		echo "PID: $$(pgrep -f 'ruby.*server.rb')"; \
+		echo "📊 Testing health endpoint..."; \
+		curl -s http://localhost:4000/health | jq . || echo "Health check failed or jq not installed"; \
+	else \
+		echo "❌ Ruby backend is not running"; \
+	fi
+
+ruby-test:
+	@echo "🧪 Running Ruby backend tests..."
+	@cd ruby-backend && bundle exec rspec --format documentation
+
+ruby-shell:
+	@echo "🐚 Entering Ruby backend directory..."
+	@cd ruby-backend && bash
+
+ruby-logs:
+	@echo "📋 Ruby backend logs:"
+	@if [ -f ruby-backend/server_output.log ]; then \
+		tail -f ruby-backend/server_output.log; \
+	else \
+		echo "No log file found. Start the server first with 'make up-ruby'"; \
+	fi
+
+ruby-restart:
+	@echo "🔄 Restarting Ruby backend..."
+	@make down-ruby
+	@sleep 1
+	@make up-ruby

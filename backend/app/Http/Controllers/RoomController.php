@@ -10,6 +10,7 @@ use App\Events\UserJoinedRoom;
 use App\Events\UserLeftRoom;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Gate;
 use App\Policies\RoomPolicy;
@@ -84,6 +85,64 @@ class RoomController extends Controller
                 'success' => false,
                 'message' => 'Failed to create room',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload or replace a room cover image (administrator only).
+     */
+    public function uploadCover(Request $request, Room $room): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (!$room->isAdministratedBy($user)) {
+                return response()->json([
+                    'error' => 'Only room administrators can update the cover'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'cover_image' => [
+                    'required',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:5120', // 5 MB
+                ],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $image = $request->file('cover_image');
+            $ext = strtolower($image->getClientOriginalExtension());
+
+            // Remove previous cover variants if exist
+            foreach (['jpg', 'jpeg', 'png', 'webp'] as $candidate) {
+                $candidatePath = "room_covers/{$room->id}.{$candidate}";
+                if (Storage::disk('public')->exists($candidatePath)) {
+                    Storage::disk('public')->delete($candidatePath);
+                }
+            }
+
+            $path = "room_covers/{$room->id}.{$ext}";
+            Storage::disk('public')->putFileAs('room_covers', $image, "{$room->id}.{$ext}");
+
+            $coverUrl = "/api/storage/{$path}";
+
+            return response()->json([
+                'message' => 'Room cover updated successfully',
+                'cover_url' => $coverUrl,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to update room cover',
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
     }

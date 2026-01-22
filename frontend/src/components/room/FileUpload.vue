@@ -117,6 +117,28 @@
             </div>
 
             <div class="flex items-center space-x-2">
+              <!-- Optional cover image -->
+              <div class="flex items-center space-x-2">
+                <input
+                  :id="`cover-${index}`"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/*"
+                  class="hidden"
+                  @change="e => attachCoverImage(index, e)"
+                />
+                <label
+                  :for="`cover-${index}`"
+                  class="px-2 py-1 rounded-full text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  :class="{ 'opacity-50 pointer-events-none': file.status === 'uploading' }"
+                  title="Attach cover image"
+                >
+                  {{ file.coverFile ? 'Change Cover' : 'Add Cover' }}
+                </label>
+                <span v-if="file.coverFile" class="text-xs text-gray-500">
+                  {{ file.coverFile.name }}
+                </span>
+              </div>
+
               <!-- Status indicator -->
               <span
                 v-if="file.status === 'pending'"
@@ -411,6 +433,17 @@ const clearErrors = () => {
   errors.value = []
 }
 
+const attachCoverImage = (index, event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    errors.value = ['Unsupported cover image format. Use JPG, PNG, or WEBP.']
+    return
+  }
+  uploadQueue.value[index].coverFile = file
+}
+
 const startUpload = async () => {
   const pendingFiles = uploadQueue.value.filter(file => file.status === 'pending')
 
@@ -432,7 +465,11 @@ const startUpload = async () => {
       }, 200)
 
       // Upload track to backend
-      const uploadedTrack = await trackStore.uploadTrack(roomStore.currentRoom.id, queuedFile.file)
+      const uploadedTrack = await trackStore.uploadTrack(
+        roomStore.currentRoom.id,
+        queuedFile.file,
+        queuedFile.coverFile
+      )
 
       clearInterval(progressInterval)
       uploadProgress.value = 100

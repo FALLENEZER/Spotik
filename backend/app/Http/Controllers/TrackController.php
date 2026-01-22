@@ -19,6 +19,20 @@ use getID3;
 class TrackController extends Controller
 {
     /**
+     * Resolve public cover url for a given track ID if present.
+     */
+    private function resolveCoverUrl(string $trackId): ?string
+    {
+        foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+            $path = "track_covers/{$trackId}.{$ext}";
+            if (Storage::disk('public')->exists($path)) {
+                return "/api/storage/{$path}";
+            }
+        }
+        return null;
+    }
+
+    /**
      * Get tracks for a room (track queue)
      */
     public function index(Request $request, Room $room): JsonResponse
@@ -64,6 +78,7 @@ class TrackController extends Controller
                                   'user_has_voted' => $track->hasVoteFrom($user),
                                   'created_at' => $track->created_at,
                                   'file_url' => $track->getFileUrl(),
+                                  'cover_url' => $this->resolveCoverUrl($track->id),
                               ];
                           });
             });
@@ -110,6 +125,12 @@ class TrackController extends Controller
                     'mimes:mp3,wav,m4a',
                     'mimetypes:audio/mpeg,audio/wav,audio/mp4,audio/x-m4a',
                     'max:' . (Track::MAX_FILE_SIZE / 1024), // Convert to KB
+                ],
+                'cover_image' => [
+                    'nullable',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:5120', // 5 MB
                 ],
             ]);
 
@@ -170,6 +191,27 @@ class TrackController extends Controller
 
             // Load relationships for response
             $track->load(['uploader:id,username']);
+
+            // Optional cover upload
+            if ($request->hasFile('cover_image')) {
+                try {
+                    $cover = $request->file('cover_image');
+                    $ext = strtolower($cover->getClientOriginalExtension());
+                    // Remove previous variants just in case
+                    foreach (['jpg', 'jpeg', 'png', 'webp'] as $candidate) {
+                        $candidatePath = "track_covers/{$track->id}.{$candidate}";
+                        if (Storage::disk('public')->exists($candidatePath)) {
+                            Storage::disk('public')->delete($candidatePath);
+                        }
+                    }
+                    Storage::disk('public')->putFileAs('track_covers', $cover, "{$track->id}.{$ext}");
+                } catch (\Exception $e) {
+                    Log::warning('Failed to store track cover image', [
+                        'track_id' => $track->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // Broadcast track added event
             broadcast(new TrackAddedToQueue($track, $room))->toOthers();
@@ -233,6 +275,7 @@ class TrackController extends Controller
                 'user_has_voted' => false,
                 'created_at' => $track->created_at,
                 'file_url' => $track->getFileUrl(),
+                'cover_url' => $this->resolveCoverUrl($track->id),
             ];
 
             return response()->json([

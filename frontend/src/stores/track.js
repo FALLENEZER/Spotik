@@ -73,13 +73,16 @@ export const useTrackStore = defineStore('track', () => {
     }
   }
 
-  const uploadTrack = async (roomId, file) => {
+  const uploadTrack = async (roomId, file, coverFile) => {
     loading.value = true
     error.value = null
 
     try {
       const formData = new FormData()
       formData.append('audio_file', file)
+      if (coverFile) {
+        formData.append('cover_image', coverFile)
+      }
 
       const response = await api.post(`/rooms/${roomId}/tracks`, formData, {
         headers: {

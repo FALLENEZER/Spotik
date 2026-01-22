@@ -26,7 +26,24 @@
       <div class="bg-white shadow rounded-lg mb-6">
         <div class="px-6 py-4 border-b border-gray-200">
           <div class="flex items-center justify-between">
-            <div>
+            <div class="flex items-center">
+              <div
+                class="w-14 h-14 rounded-md overflow-hidden border border-gray-200 mr-4 flex-shrink-0"
+                :style="getRoomCoverStyle(roomStore.currentRoom)"
+                aria-hidden="true"
+              >
+                <img
+                  v-if="roomStore.currentRoom.cover_url"
+                  :src="roomStore.currentRoom.cover_url"
+                  alt=""
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full grid place-items-center">
+                  <span class="text-xs font-semibold text-white drop-shadow">
+                    {{ getInitials(roomStore.currentRoom.name) }}
+                  </span>
+                </div>
+              </div>
               <h1 class="text-2xl font-bold text-gray-900">
                 {{ roomStore.currentRoom.name }}
               </h1>
@@ -157,6 +174,18 @@
               <span class="text-sm text-gray-600">
                 Created {{ formatDate(roomStore.currentRoom.created_at) }}
               </span>
+              <div v-if="roomStore.isRoomAdmin">
+                <input
+                  ref="roomCoverInput"
+                  type="file"
+                  class="hidden"
+                  accept=".jpg,.jpeg,.png,.webp,image/*"
+                  @change="handleRoomCoverSelected"
+                />
+                <button type="button" class="btn-outline btn-sm" @click="triggerRoomCoverInput">
+                  Change Cover
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -196,6 +225,7 @@ import { useRouter } from 'vue-router'
 import { useRoomStore } from '@/stores/room'
 import { useTrackStore } from '@/stores/track'
 import { useWebSocket } from '@/composables/useWebSocket'
+import api from '@/services/api'
 import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ParticipantList from '@/components/room/ParticipantList.vue'
@@ -222,6 +252,7 @@ const error = ref('')
 const trackLoading = ref(false)
 const participantLoading = ref(false)
 const playbackControls = ref(null)
+const roomCoverInput = ref(null)
 
 // Computed properties
 const breadcrumbItems = computed(() => [
@@ -427,6 +458,53 @@ const formatDate = dateString => {
     return `${days} day${days !== 1 ? 's' : ''} ago`
   } else {
     return date.toLocaleDateString()
+  }
+}
+
+const getInitials = name => {
+  if (!name) return 'A'
+  const parts = name.split(/\s+/).filter(Boolean)
+  const first = parts[0]?.[0] || 'A'
+  const second = parts.length > 1 ? parts[1]?.[0] : ''
+  return (first + second).toUpperCase()
+}
+
+const stringToHue = str => {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return Math.abs(hash) % 360
+}
+
+const getRoomCoverStyle = room => {
+  if (room?.cover_url) return {}
+  const hue = stringToHue(room?.name || String(room?.id))
+  const start = `hsl(${hue}, 70%, 55%)`
+  const end = `hsl(${(hue + 40) % 360}, 70%, 45%)`
+  return { background: `linear-gradient(135deg, ${start}, ${end})` }
+}
+
+const triggerRoomCoverInput = () => {
+  roomCoverInput.value?.click()
+}
+
+const handleRoomCoverSelected = async e => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  try {
+    const formData = new FormData()
+    formData.append('cover_image', file)
+    const { data } = await api.post(`/rooms/${roomStore.currentRoom.id}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    roomStore.updateRoomState({ cover_url: data.cover_url })
+    showNotification('success', 'Success', 'Room cover updated')
+  } catch (err) {
+    console.error('Failed to upload room cover:', err)
+    showNotification('error', 'Error', err.response?.data?.error || 'Failed to upload cover')
+  } finally {
+    roomCoverInput.value.value = ''
   }
 }
 

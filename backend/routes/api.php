@@ -23,6 +23,10 @@ Route::get('/time', function () {
     ]);
 });
 
+// Public storage serving for covers
+Route::get('/storage/{path}', [App\Http\Controllers\FileController::class, 'servePublic'])
+    ->where('path', '.*');
+
 // Public routes (no authentication required)
 Route::prefix('auth')->group(function () {
     Route::post('/register', [App\Http\Controllers\AuthController::class, 'register']);
@@ -46,6 +50,7 @@ Route::middleware(['jwt.custom', 'performance.monitoring'])->group(function () {
         Route::get('/{room}', [App\Http\Controllers\RoomController::class, 'show']);
         Route::put('/{room}', [App\Http\Controllers\RoomController::class, 'update']);
         Route::delete('/{room}', [App\Http\Controllers\RoomController::class, 'destroy']);
+        Route::post('/{room}/cover', [App\Http\Controllers\RoomController::class, 'uploadCover']);
         
         // Room participation
         Route::post('/{room}/join', [App\Http\Controllers\RoomController::class, 'join']);

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class RoomResource extends JsonResource
 {
@@ -33,6 +34,15 @@ class RoomResource extends JsonResource
                 $this->relationLoaded('participants'),
                 fn() => $this->participants->count()
             ),
+            'cover_url' => (function () {
+                foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+                    $path = "room_covers/{$this->id}.{$ext}";
+                    if (Storage::disk('public')->exists($path)) {
+                        return "/api/storage/{$path}";
+                    }
+                }
+                return null;
+            })(),
             'is_administrator' => $this->when(
                 $request->auth_user,
                 fn() => $this->isAdministratedBy($request->auth_user)

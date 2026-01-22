@@ -277,6 +277,32 @@ class FileController extends Controller
         }
     }
 
+    public function servePublic(Request $request, string $path): Response|StreamedResponse
+    {
+        try {
+            if (!preg_match('/^(room_covers|track_covers)\\//', $path)) {
+                return response()->json(['error' => 'Invalid path'], 403);
+            }
+
+            if (!Storage::disk('public')->exists($path)) {
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            $mimeType = Storage::disk('public')->mimeType($path) ?? 'application/octet-stream';
+            $fullPath = Storage::disk('public')->path($path);
+
+            return response()->file($fullPath, [
+                'Content-Type' => $mimeType,
+                'Cache-Control' => 'public, max-age=3600',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to serve file',
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
     /**
      * Format bytes to human readable format
      */

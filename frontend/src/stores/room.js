@@ -46,7 +46,7 @@ export const useRoomStore = defineStore('room', () => {
       const response = await api.post('/rooms', roomData)
       const room = response.data.data // Extract from data wrapper
 
-      currentRoom.value = room
+      currentRoom.value = normalizeRoom(room)
       participants.value = room.participants || [] // Use participants from response
 
       return room
@@ -66,7 +66,7 @@ export const useRoomStore = defineStore('room', () => {
       const response = await api.post(`/rooms/${roomId}/join`)
       const { room, participant } = response.data.data
 
-      currentRoom.value = room
+      currentRoom.value = normalizeRoom(room)
       participants.value = room.participants || []
 
       return room
@@ -77,7 +77,7 @@ export const useRoomStore = defineStore('room', () => {
           const roomResponse = await api.get(`/rooms/${roomId}`)
           const roomData = roomResponse.data.data
 
-          currentRoom.value = roomData
+          currentRoom.value = normalizeRoom(roomData)
           participants.value = roomData.participants || []
 
           return roomData
@@ -144,7 +144,7 @@ export const useRoomStore = defineStore('room', () => {
       const response = await api.get(`/rooms/${roomId}`)
       const roomData = response.data.data
 
-      currentRoom.value = roomData
+      currentRoom.value = normalizeRoom(roomData)
       participants.value = roomData.participants || []
 
       // Update track store with current track and playback state from room
@@ -188,7 +188,7 @@ export const useRoomStore = defineStore('room', () => {
           const { room: updatedRoom, participant } = joinResponse.data.data
 
           // Update room data with joined state
-          currentRoom.value = updatedRoom
+          currentRoom.value = normalizeRoom(updatedRoom)
           participants.value = updatedRoom.participants || []
         } catch (joinError) {
           // If join fails, still return the room data but log the error
@@ -208,7 +208,7 @@ export const useRoomStore = defineStore('room', () => {
 
   const updateRoomState = roomData => {
     if (currentRoom.value && currentRoom.value.id === roomData.id) {
-      currentRoom.value = { ...currentRoom.value, ...roomData }
+      currentRoom.value = { ...currentRoom.value, ...normalizeRoom(roomData) }
     }
   }
 
@@ -231,6 +231,16 @@ export const useRoomStore = defineStore('room', () => {
     currentRoom.value = null
     participants.value = []
     error.value = null
+  }
+
+  const normalizeRoom = room => {
+    if (!room) return room
+    const url = room.cover_url
+    if (typeof url === 'string') {
+      // Leave /storage and /api/storage as-is; support absolute URLs too
+      // No rewriting here to be compatible with different backends
+    }
+    return room
   }
 
   return {
