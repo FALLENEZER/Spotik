@@ -113,6 +113,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Playlists created by this user
+     */
+    public function playlists(): HasMany
+    {
+        return $this->hasMany(Playlist::class);
+    }
+
+    /**
      * Check if user is administrator of a room
      */
     public function isAdministratorOf(Room $room): bool

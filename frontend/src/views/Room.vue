@@ -204,6 +204,7 @@
             @play-track="handlePlayTrack"
             @remove-track="handleRemoveTrack"
             @play-next="handlePlayNext"
+            @create-playlist="handleCreatePlaylist"
           />
 
           <!-- File upload -->
@@ -441,6 +442,12 @@ const handlePlayNext = async () => {
   }
 }
 
+const handleCreatePlaylist = () => {
+  // Navigate to dashboard with a focus on playlist creation
+  router.push('/dashboard')
+  showNotification('info', 'Create Playlist', 'Navigate to the dashboard to create a new playlist')
+}
+
 const formatDate = dateString => {
   if (!dateString) return 'Unknown'
 
@@ -492,17 +499,92 @@ const triggerRoomCoverInput = () => {
 const handleRoomCoverSelected = async e => {
   const file = e.target.files?.[0]
   if (!file) return
+
   try {
     const formData = new FormData()
     formData.append('cover_image', file)
-    const { data } = await api.post(`/rooms/${roomStore.currentRoom.id}/cover`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+
+    // Create a custom config that doesn't override Content-Type
+    const config = {
+      headers: {
+        // Don't set Content-Type - let browser set it with boundary
+        Accept: 'application/json',
+      },
+    }
+
+    // Get auth token manually to ensure it's included
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+
+    const { data } = await api.post(`/rooms/${roomStore.currentRoom.id}/cover`, formData, config)
     roomStore.updateRoomState({ cover_url: data.cover_url })
     showNotification('success', 'Success', 'Room cover updated')
   } catch (err) {
     console.error('Failed to upload room cover:', err)
-    showNotification('error', 'Error', err.response?.data?.error || 'Failed to upload cover')
+    
+    // Detailed error handling
+    const isValidationError = err.response?.status === 422
+    const validationErrors = err.response?.data?.errors || {}
+    
+    // Check for specific file errors (size, type)
+    const hasImageError = 
+      !!validationErrors.cover_image || 
+      /must be an image/i.test(validationErrors.cover_image?.[0] || '') ||
+      /file/i.test(validationErrors.cover_image?.[0] || '')
+
+    // If it's a validation error related to the file, or if the server rejected the upload
+    // try the base64 fallback method which can sometimes bypass strict server-side file checks
+    // or issues with multipart/form-data parsing
+    if (isValidationError || err.response?.status === 413) {
+      console.log('Attempting fallback base64 upload...')
+      try {
+        const toDataUrl = file =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+          
+        // Check file size before fallback - 10MB limit (approx)
+        if (file.size > 10 * 1024 * 1024) {
+           throw new Error('Image is too large. Please choose an image under 10MB.')
+        }
+
+        const dataUrl = await toDataUrl(file)
+        const fallbackPayload = { cover_data: dataUrl }
+        
+        const { data } = await api.post(
+          `/rooms/${roomStore.currentRoom.id}/cover`,
+          fallbackPayload,
+          { headers: { Accept: 'application/json' } }
+        )
+        
+        roomStore.updateRoomState({ cover_url: data.cover_url })
+        showNotification('success', 'Success', 'Room cover updated (fallback)')
+        return // Exit successfully
+      } catch (fallbackErr) {
+        console.error('Fallback base64 upload failed:', fallbackErr)
+        // If fallback fails, show the original error if it was size related, or the fallback error
+        const msg = fallbackErr.message || 
+          fallbackErr.response?.data?.error ||
+          fallbackErr.response?.data?.message ||
+          'Failed to upload cover'
+          
+        showNotification('error', 'Error', msg)
+        return
+      }
+    }
+
+    // Generic error handling
+    const errorMessage =
+      err.response?.data?.error || 
+      err.response?.data?.message || 
+      'Failed to upload cover'
+      
+    showNotification('error', 'Error', errorMessage)
   } finally {
     roomCoverInput.value.value = ''
   }

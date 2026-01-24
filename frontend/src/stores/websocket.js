@@ -532,10 +532,19 @@ export const useWebSocketStore = defineStore('websocket', () => {
     if (mode.value === 'pusher') {
       if (roomChannel.value) {
         try {
-          roomChannel.value.stopListening()
-          echo.value.leave(roomChannel.value.name)
+          if (roomChannel.value.stopListening) {
+            roomChannel.value.stopListening()
+          }
+
+          const channelName = roomChannel.value.name || roomChannel.value.subscription?.name
+          if (channelName && typeof channelName === 'string') {
+            echo.value.leave(channelName)
+            console.log(`Left room channel ${channelName} successfully`)
+          } else {
+            console.warn('Could not determine channel name to leave', roomChannel.value)
+          }
+
           roomChannel.value = null
-          console.log('Left room channel successfully')
         } catch (err) {
           console.error('Error leaving room channel:', err)
           roomChannel.value = null
@@ -545,7 +554,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
       if (nativeSocket.value && connected.value) {
         try {
           nativeSocket.value.send(JSON.stringify({ type: 'leave_room', data: {} }))
-        } catch (err) {}
+        } catch (err) { }
       }
     }
   }

@@ -82,29 +82,24 @@ return [
 
         // High-performance cache for frequently accessed data
         'tracks' => [
-            'driver' => 'redis',
-            'connection' => 'cache',
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/data'),
             'prefix' => 'tracks_cache',
-            'serializer' => 'igbinary', // More efficient serialization
-            'compression' => true,
+            // 'serializer' => 'igbinary', // Removed as it might require extension
         ],
 
         // Cache for room data
         'rooms' => [
-            'driver' => 'redis',
-            'connection' => 'cache',
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/data'),
             'prefix' => 'rooms_cache',
-            'serializer' => 'php',
-            'compression' => false, // Room data is small, skip compression
         ],
 
         // Cache for user sessions and auth data
         'sessions' => [
-            'driver' => 'redis',
-            'connection' => 'session',
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/data'),
             'prefix' => 'session_cache',
-            'serializer' => 'php',
-            'compression' => false,
         ],
 
     ],

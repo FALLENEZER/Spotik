@@ -27,6 +27,10 @@ Route::get('/time', function () {
 Route::get('/storage/{path}', [App\Http\Controllers\FileController::class, 'servePublic'])
     ->where('path', '.*');
 
+// Public genres endpoint (for testing)
+Route::get('/genres', [App\Http\Controllers\GenreController::class, 'index']);
+Route::get('/genres/popular', [App\Http\Controllers\GenreController::class, 'popular']);
+
 // Public routes (no authentication required)
 Route::prefix('auth')->group(function () {
     Route::post('/register', [App\Http\Controllers\AuthController::class, 'register']);
@@ -51,6 +55,7 @@ Route::middleware(['jwt.custom', 'performance.monitoring'])->group(function () {
         Route::put('/{room}', [App\Http\Controllers\RoomController::class, 'update']);
         Route::delete('/{room}', [App\Http\Controllers\RoomController::class, 'destroy']);
         Route::post('/{room}/cover', [App\Http\Controllers\RoomController::class, 'uploadCover']);
+        Route::get('/{room}/cover/debug', [App\Http\Controllers\RoomController::class, 'debugCoverUpload']);
         
         // Room participation
         Route::post('/{room}/join', [App\Http\Controllers\RoomController::class, 'join']);
@@ -83,6 +88,25 @@ Route::middleware(['jwt.custom', 'performance.monitoring'])->group(function () {
     
     // Track streaming routes
     Route::get('/tracks/{track}/stream', [App\Http\Controllers\TrackController::class, 'stream']);
+    
+    // Genre management routes
+    Route::prefix('genres')->group(function () {
+        Route::post('/', [App\Http\Controllers\GenreController::class, 'store']);
+        Route::get('/{genre}', [App\Http\Controllers\GenreController::class, 'show']);
+        Route::put('/{genre}', [App\Http\Controllers\GenreController::class, 'update']);
+        Route::delete('/{genre}', [App\Http\Controllers\GenreController::class, 'destroy']);
+    });
+    
+    // Playlist management routes
+    Route::prefix('playlists')->group(function () {
+        Route::get('/', [App\Http\Controllers\PlaylistController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\PlaylistController::class, 'store']);
+        Route::get('/{playlist}', [App\Http\Controllers\PlaylistController::class, 'show']);
+        Route::put('/{playlist}', [App\Http\Controllers\PlaylistController::class, 'update']);
+        Route::delete('/{playlist}', [App\Http\Controllers\PlaylistController::class, 'destroy']);
+        Route::post('/{playlist}/tracks', [App\Http\Controllers\PlaylistController::class, 'addTrack']);
+        Route::delete('/{playlist}/tracks/{track}', [App\Http\Controllers\PlaylistController::class, 'removeTrack']);
+    });
 });
 
 // WebSocket broadcasting routes

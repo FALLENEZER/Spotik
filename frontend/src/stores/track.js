@@ -73,7 +73,7 @@ export const useTrackStore = defineStore('track', () => {
     }
   }
 
-  const uploadTrack = async (roomId, file, coverFile) => {
+  const uploadTrack = async (roomId, file, coverFile, genreId) => {
     loading.value = true
     error.value = null
 
@@ -82,6 +82,9 @@ export const useTrackStore = defineStore('track', () => {
       formData.append('audio_file', file)
       if (coverFile) {
         formData.append('cover_image', coverFile)
+      }
+      if (genreId) {
+        formData.append('genre_id', genreId)
       }
 
       const response = await api.post(`/rooms/${roomId}/tracks`, formData, {

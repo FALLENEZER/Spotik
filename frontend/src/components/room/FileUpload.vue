@@ -20,6 +20,30 @@
     </div>
 
     <div class="px-6 py-4">
+      <!-- Genre selection -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Default Genre (optional)
+        </label>
+        <select
+          v-model="selectedGenre"
+          class="input w-full sm:w-64"
+          :disabled="loadingGenres"
+        >
+          <option value="">No genre</option>
+          <option
+            v-for="genre in genres"
+            :key="genre.id"
+            :value="genre.id"
+          >
+            {{ genre.name }}
+          </option>
+        </select>
+        <p class="mt-1 text-xs text-gray-500">
+          This genre will be applied to all uploaded tracks
+        </p>
+      </div>
+
       <!-- Upload area -->
       <div
         @drop="handleDrop"
@@ -262,9 +286,10 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import { useTrackStore } from '@/stores/track'
 import { useRoomStore } from '@/stores/room'
+import { genreApi } from '@/services/api'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const trackStore = useTrackStore()
@@ -279,6 +304,9 @@ const uploadingFile = ref(null)
 const uploadProgress = ref(0)
 const uploadQueue = ref([])
 const errors = ref([])
+const genres = ref([])
+const selectedGenre = ref('')
+const loadingGenres = ref(false)
 
 // Constants
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
@@ -286,6 +314,19 @@ const SUPPORTED_TYPES = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a']
 const SUPPORTED_EXTENSIONS = ['.mp3', '.wav', '.m4a']
 
 // Methods
+const fetchGenres = async () => {
+  loadingGenres.value = true
+  try {
+    const response = await genreApi.getAll()
+    genres.value = response.data.data || []
+  } catch (error) {
+    console.warn('Failed to fetch genres:', error)
+    genres.value = []
+  } finally {
+    loadingGenres.value = false
+  }
+}
+
 const triggerFileInput = () => {
   if (!uploading.value) {
     fileInput.value?.click()
@@ -468,7 +509,8 @@ const startUpload = async () => {
       const uploadedTrack = await trackStore.uploadTrack(
         roomStore.currentRoom.id,
         queuedFile.file,
-        queuedFile.coverFile
+        queuedFile.coverFile,
+        selectedGenre.value || null
       )
 
       clearInterval(progressInterval)
@@ -535,4 +577,9 @@ const formatFileSize = bytes => {
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
 }
+
+// Initialize
+onMounted(() => {
+  fetchGenres()
+})
 </script>

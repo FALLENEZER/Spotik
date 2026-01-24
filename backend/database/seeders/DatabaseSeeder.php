@@ -11,7 +11,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Add seeders here when needed
+        // Seed genres first
+        $this->call([
+            GenreSeeder::class,
+        ]);
+        
+        // Add other seeders here when needed
         // $this->call([
         //     UserSeeder::class,
         //     RoomSeeder::class,

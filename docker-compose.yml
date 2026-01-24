@@ -89,10 +89,10 @@ services:
       - DB_PASSWORD=spotik_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - BROADCAST_DRIVER=redis
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
+      - BROADCAST_DRIVER=log
+      - CACHE_DRIVER=file
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=sync
     command: php artisan serve --host=0.0.0.0 --port=8000
     depends_on:
       postgres:

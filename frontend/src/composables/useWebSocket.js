@@ -19,6 +19,11 @@ export function useWebSocket() {
 
   // Auto-connect when authenticated
   const initializeConnection = () => {
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'false') {
+      console.log('WebSockets are disabled via configuration')
+      return
+    }
+
     if (authStore.isAuthenticated && authStore.token && !websocketStore.connected) {
       console.log('Initializing WebSocket connection with authentication')
       websocketStore.connect(authStore.token)
@@ -84,6 +89,10 @@ export function useWebSocket() {
   }
 
   const joinRoom = roomId => {
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'false') {
+      return true // Simulate success
+    }
+
     if (!isConnected.value) {
       console.error('Cannot join room: WebSocket not connected')
       return false
@@ -92,6 +101,8 @@ export function useWebSocket() {
   }
 
   const leaveRoom = () => {
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'false') return
+
     websocketStore.leaveRoom()
   }
 

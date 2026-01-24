@@ -35,6 +35,13 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/playlist/:id',
+    name: 'playlist-detail',
+    component: () => import('../views/PlaylistDetail.vue'),
+    meta: { requiresAuth: true },
+    props: true,
+  },
+  {
     path: '/room/:id',
     name: 'Room',
     component: Room,

@@ -52,12 +52,12 @@ class TrackController extends Controller
             // Get track queue with caching
             $tracks = Cache::remember($cacheKey, 300, function () use ($room, $user) {
                 return $room->trackQueue()
-                          ->with(['uploader:id,username'])
+                          ->with(['uploader:id,username', 'genre:id,name,color'])
                           ->withCount('votes')
                           ->select([
                               'id', 'room_id', 'uploader_id', 'original_name', 
                               'duration_seconds', 'file_size_bytes', 'mime_type', 
-                              'vote_score', 'created_at', 'filename'
+                              'vote_score', 'created_at', 'filename', 'genre_id'
                           ])
                           ->get()
                           ->map(function ($track) use ($user) {
@@ -75,6 +75,11 @@ class TrackController extends Controller
                                       'id' => $track->uploader->id,
                                       'username' => $track->uploader->username,
                                   ],
+                                  'genre' => $track->genre ? [
+                                      'id' => $track->genre->id,
+                                      'name' => $track->genre->name,
+                                      'color' => $track->genre->color,
+                                  ] : null,
                                   'user_has_voted' => $track->hasVoteFrom($user),
                                   'created_at' => $track->created_at,
                                   'file_url' => $track->getFileUrl(),
@@ -132,6 +137,11 @@ class TrackController extends Controller
                     'mimes:jpg,jpeg,png,webp',
                     'max:5120', // 5 MB
                 ],
+                'genre_id' => [
+                    'nullable',
+                    'uuid',
+                    'exists:genres,id',
+                ],
             ]);
 
             if ($validator->fails()) {
@@ -187,10 +197,11 @@ class TrackController extends Controller
                 'file_size_bytes' => $audioFile->getSize(),
                 'mime_type' => $audioFile->getMimeType(),
                 'vote_score' => 0,
+                'genre_id' => $request->input('genre_id'),
             ]);
 
             // Load relationships for response
-            $track->load(['uploader:id,username']);
+            $track->load(['uploader:id,username', 'genre:id,name,color']);
 
             // Optional cover upload
             if ($request->hasFile('cover_image')) {
@@ -272,6 +283,11 @@ class TrackController extends Controller
                     'id' => $track->uploader->id,
                     'username' => $track->uploader->username,
                 ],
+                'genre' => $track->genre ? [
+                    'id' => $track->genre->id,
+                    'name' => $track->genre->name,
+                    'color' => $track->genre->color,
+                ] : null,
                 'user_has_voted' => false,
                 'created_at' => $track->created_at,
                 'file_url' => $track->getFileUrl(),

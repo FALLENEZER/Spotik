@@ -194,6 +194,11 @@
       />
     </div>
 
+    <!-- Playlist management -->
+    <div class="mt-8">
+      <PlaylistManager @view-playlist="handleViewPlaylist" />
+    </div>
+
     <!-- Monitoring -->
     <div class="mt-8">
       <div class="flex items-center justify-between mb-4">
@@ -281,6 +286,7 @@ import api from '@/services/api'
 import Breadcrumbs from '@/components/common/Breadcrumbs.vue'
 import RoomList from '@/components/room/RoomList.vue'
 import CreateRoomModal from '@/components/room/CreateRoomModal.vue'
+import PlaylistManager from '@/components/playlist/PlaylistManager.vue'
 
 const router = useRouter()
 const roomStore = useRoomStore()
@@ -401,6 +407,10 @@ const handleRoomCreated = room => {
   rooms.value.unshift(room)
   // Navigate to the new room
   router.push(`/room/${room.id}`)
+}
+
+const handleViewPlaylist = (playlist) => {
+  router.push(`/playlist/${playlist.id}`)
 }
 
 // Initialize

@@ -114,9 +114,19 @@
           <div class="flex-1 min-w-0 ml-4">
             <div class="flex items-center justify-between">
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-900 truncate">
-                  {{ track.original_name }}
-                </p>
+                <div class="flex items-center space-x-2">
+                  <p class="text-sm font-medium text-gray-900 truncate">
+                    {{ track.original_name }}
+                  </p>
+                  <!-- Genre badge -->
+                  <span
+                    v-if="track.genre"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                    :style="{ backgroundColor: track.genre.color || '#6B7280' }"
+                  >
+                    {{ track.genre.name }}
+                  </span>
+                </div>
                 <div class="flex items-center mt-1 text-xs text-gray-500 space-x-4">
                   <span>{{ formatDuration(track.duration_seconds) }}</span>
                   <span>{{ formatFileSize(track.file_size_bytes) }}</span>
@@ -156,6 +166,22 @@
                     />
                   </svg>
                   <span>{{ track.vote_score }}</span>
+                </button>
+
+                <!-- Add to playlist button -->
+                <button
+                  @click="showAddToPlaylist(track)"
+                  class="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                  title="Add to playlist"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
                 </button>
 
                 <!-- Admin controls -->
@@ -198,6 +224,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Add to Playlist Modal -->
+    <AddToPlaylistModal
+      :show="showPlaylistModal"
+      :track="selectedTrack"
+      @close="closePlaylistModal"
+      @create-playlist="handleCreatePlaylist"
+    />
   </div>
 </template>
 
@@ -206,6 +240,7 @@ import { ref, computed, inject } from 'vue'
 import { useRoomStore } from '@/stores/room'
 import { useTrackStore } from '@/stores/track'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import AddToPlaylistModal from '@/components/playlist/AddToPlaylistModal.vue'
 
 const roomStore = useRoomStore()
 const trackStore = useTrackStore()
@@ -220,10 +255,12 @@ const { loading } = defineProps({
 })
 
 // Emits
-defineEmits(['play-track', 'remove-track', 'play-next'])
+const emit = defineEmits(['play-track', 'remove-track', 'play-next', 'create-playlist'])
 
 // State
 const votingTrackId = ref(null)
+const showPlaylistModal = ref(false)
+const selectedTrack = ref(null)
 
 // Computed
 const sortedTracks = computed(() => trackStore.sortedQueue)
@@ -314,5 +351,20 @@ const formatUploadTime = dateString => {
     const days = Math.floor(diffInMinutes / 1440)
     return `${days}d ago`
   }
+}
+
+const showAddToPlaylist = (track) => {
+  selectedTrack.value = track
+  showPlaylistModal.value = true
+}
+
+const closePlaylistModal = () => {
+  showPlaylistModal.value = false
+  selectedTrack.value = null
+}
+
+const handleCreatePlaylist = () => {
+  closePlaylistModal()
+  emit('create-playlist')
 }
 </script>

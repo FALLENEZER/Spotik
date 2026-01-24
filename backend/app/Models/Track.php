@@ -24,6 +24,7 @@ class Track extends Model
         'file_size_bytes',
         'mime_type',
         'vote_score',
+        'genre_id',
     ];
 
     protected $casts = [
@@ -110,6 +111,24 @@ class Track extends Model
     public function voters(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'track_votes')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Genre of this track
+     */
+    public function genre(): BelongsTo
+    {
+        return $this->belongsTo(Genre::class);
+    }
+
+    /**
+     * Playlists containing this track
+     */
+    public function playlists(): BelongsToMany
+    {
+        return $this->belongsToMany(Playlist::class, 'playlist_tracks')
+                    ->withPivot('position')
                     ->withTimestamps();
     }
 

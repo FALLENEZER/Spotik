@@ -26,6 +26,7 @@ class TrackResource extends JsonResource
             // Relationships
             'uploader' => new UserResource($this->whenLoaded('uploader')),
             'room' => new RoomResource($this->whenLoaded('room')),
+            'genre' => new GenreResource($this->whenLoaded('genre')),
             
             // Computed fields
             'has_voted' => $this->when(

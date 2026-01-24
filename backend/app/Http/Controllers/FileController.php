@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
@@ -18,7 +18,7 @@ class FileController extends Controller
     /**
      * Serve audio files with proper headers and streaming support
      */
-    public function serve(Request $request, string $filename): Response|StreamedResponse
+    public function serve(Request $request, string $filename): Response
     {
         try {
             // Construct the file path
@@ -31,9 +31,10 @@ class FileController extends Controller
                     return null;
                 }
 
+                $full = Storage::disk('audio')->path($filePath);
                 return [
                     'size' => Storage::disk('audio')->size($filePath),
-                    'mime_type' => Storage::disk('audio')->mimeType($filePath),
+                    'mime_type' => mime_content_type($full) ?: 'application/octet-stream',
                     'last_modified' => Storage::disk('audio')->lastModified($filePath),
                 ];
             });
@@ -248,9 +249,10 @@ class FileController extends Controller
                     return null;
                 }
 
+                $full = Storage::disk('audio')->path($filePath);
                 return [
                     'size' => Storage::disk('audio')->size($filePath),
-                    'mime_type' => Storage::disk('audio')->mimeType($filePath),
+                    'mime_type' => mime_content_type($full) ?: 'application/octet-stream',
                     'last_modified' => Storage::disk('audio')->lastModified($filePath),
                 ];
             });
@@ -277,7 +279,7 @@ class FileController extends Controller
         }
     }
 
-    public function servePublic(Request $request, string $path): Response|StreamedResponse
+    public function servePublic(Request $request, string $path): Response
     {
         try {
             if (!preg_match('/^(room_covers|track_covers)\\//', $path)) {
@@ -288,7 +290,7 @@ class FileController extends Controller
                 return response()->json(['error' => 'File not found'], 404);
             }
 
-            $mimeType = Storage::disk('public')->mimeType($path) ?? 'application/octet-stream';
+            $mimeType = mime_content_type(Storage::disk('public')->path($path)) ?: 'application/octet-stream';
             $fullPath = Storage::disk('public')->path($path);
 
             return response()->file($fullPath, [
@@ -296,6 +298,12 @@ class FileController extends Controller
                 'Cache-Control' => 'public, max-age=3600',
             ]);
         } catch (\Exception $e) {
+            Log::error('Public file serving error', [
+                'path' => $path,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'error' => 'Failed to serve file',
                 'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
